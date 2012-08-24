@@ -30,13 +30,18 @@
 ;; The function `ascii-table' switches to a new buffer and then prints
 ;; the ascii-table showing Emacs' internal representations of the
 ;; files, and their respective decimal, octal and hexadecimal codes.
-
+;;
+;; NOTE: to quick searching numbers, use `search-forward-word' ("M-s w")
 
 ;;; History:
-;;
+;; 2012/08/24 carltonf
+;;     Use help-mode to display ascii table.
+;;     Highlight text presentation of characters.
+;;     Decimal number now ends with a dot, to help searching.
 
 ;;; Code:
 (require 'cl)
+
 (defconst ascii-version
   "$Id: ascii-table.el,v 1.7 2004/02/27 21:30:21 wence Exp $"
   "ascii-table's version number.")
@@ -50,17 +55,20 @@
 (defun ascii-table ()
   "Display an ASCII Table."
   (interactive)
-  (switch-to-buffer (get-buffer-create "*ASCII Table*"))
-  (erase-buffer)
-  (insert " Cha | Dec | Oct  | Hex  || Cha | Dec | Oct  | Hex  || Cha | Dec | Oct  | Hex\n"
-          "-----+-----+------+------++-----+-----+------+------++-----+-----+------+------\n")
-  (loop for i from 0 to 42
-        for j = (+ i 43)
-        for k = (+ j 43)
-        do
-        (ascii-insert-char i)
-        (ascii-insert-char j)
-        (ascii-insert-char k)))
+  (let ((ascii-buffer " *ASCII Table*"))
+    (with-help-window ascii-buffer
+      (with-current-buffer standard-output
+        (insert " Cha | Dec | Oct  | Hex  || Cha | Dec | Oct  | Hex  || Cha | Dec | Oct  | Hex\n"
+                "-----+-----+------+------++-----+-----+------+------++-----+-----+------+------\n")
+        (loop for i from 0 to 42
+              for j = (+ i 43)
+              for k = (+ j 43)
+              do
+              (ascii-insert-char i)
+              (ascii-insert-char j)
+              (ascii-insert-char k))
+        (setq buffer-read-only t)
+        (hl-line-mode t)))))
 
 (defun ascii-insert-char (char)
   (if (= char 128)
@@ -70,10 +78,12 @@
                      ((< char 86)
                       32)
                      (t
-                      59))))
+                      59)))
+          (beg (point)))
       (insert (format " %2s" (single-key-description char)))
+      (put-text-property beg (point) 'face "font-lock-function-name-face")
       (ascii-pad-to-column col "|")
-      (insert (format " %2d" char))
+      (insert (format " %2d." char))
       (ascii-pad-to-column (setq col (+ col 6)) "|")
       (insert (format " %04o" char))
       (ascii-pad-to-column (setq col (+ col 7)) "|")
